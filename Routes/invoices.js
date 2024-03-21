@@ -5,11 +5,19 @@ router.get("/premium", async (req, res) => {
     try {
         res.writeHead(200, {
             'Content-Type': 'application/pdf',
-            'Content-Disposition': 'attachment;filename=premium-member-invoice.pdf'
+            'Content-Disposition': 'inline;filename=premium-member-invoice.pdf'
         });
 
-        // Call the service function with the response object
-        PremiumInvoiceService.generatePremiumInvoicePDF(res);
+        // Dynamic data
+        const invoiceData = {
+            iNumber: '100TN12',
+            due: '17/02/2022',
+            clientName: 'Jean Marie',
+            phone: '072123232',
+        };
+
+        // Call the service function with dynamic data and the response object
+        PremiumInvoiceService.generatePremiumInvoicePDF(res, invoiceData);
 
     } catch (error) {
         console.error('Error generating PDF:', error);
