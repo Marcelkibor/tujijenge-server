@@ -1,28 +1,61 @@
-const router = require("express").Router();
-const PremiumInvoiceService = require('../Resources/PremiumInvoiceService'); // Import the service
+const express = require("express");
+const router = express.Router();
+const mailjet = require("node-mailjet");
+const PremiumInvoiceService = require("../Resources/PremiumInvoiceService");
+require("dotenv").config();
 
-router.get("/premium", async (req, res) => {
-    try {
-        res.writeHead(200, {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': 'inline;filename=premium-member-invoice.pdf'
-        });
+// Initialize Mailjet client
+const mailjetClient = mailjet.connect(
+  process.env.MAILJET_API_KEY,
+  process.env.MAILJET_API_SECRET
+);
+router.post("/premium", async (req, res) => {
+  try {
+    const { iNumber, due, clientName, phone,cEmail } = req.body;
+    const pdfBuffer = await PremiumInvoiceService.generatePremiumInvoicePDF({
+      iNumber,
+      due,
+      clientName,
+      phone,
+    });
 
-        // Dynamic data
-        const invoiceData = {
-            iNumber: '100TN12',
-            due: '17/02/2022',
-            clientName: 'Jean Marie',
-            phone: '072123232',
-        };
+    // Prepare email message
+    const emailMessage = {
+      From: {
+        Email: cEmail,
+        Name: clientName,
+      },
+      To: [
+        {
+          Email: process.env.EMAIL_RECIPIENT,
+          Name: process.env.RECIPIENT_NAME,
+        },
+      ],
+      Subject: "Premium Member Invoice",
+      TextPart: "Please find your premium member invoice attached.",
+      Attachments: [
+        {
+          ContentType: "application/pdf",
+          Filename: "premium-invoice.pdf",
+          Base64Content: pdfBuffer.toString("base64"),
+        },
+      ],
+    };
 
-        // Call the service function with dynamic data and the response object
-        PremiumInvoiceService.generatePremiumInvoicePDF(res, invoiceData);
+    // Send email with PDF attachment
+    const request = mailjetClient
+      .post("send", { version: "v3.1" })
+      .request({ Messages: [emailMessage] });
 
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-        res.status(500).send('Error generating PDF');
-    }
+    // Await response
+    const response = await request;
+    console.log("Email sent successfully:", response.body);
+
+    res.status(200).json({ message: "Email sent successfully" });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    res.status(500).json({ error: "Error sending email" });
+  }
 });
 
 module.exports = router;
