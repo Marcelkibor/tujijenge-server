@@ -1,14 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const mailjet = require("node-mailjet");
+const Mailjet = require("node-mailjet");
 const PremiumInvoiceService = require("../Resources/PremiumInvoiceService");
 require("dotenv").config();
 
 // Initialize Mailjet client
-const mailjetClient = mailjet.connect(
-  process.env.MAILJET_API_KEY,
-  process.env.MAILJET_API_SECRET
-);
+const mailjetClient = new Mailjet({
+  apiKey: process.env.MAILJET_API_KEY || 'your-api-key',
+  apiSecret: process.env.MAILJET_API_SECRET || 'your-api-secret'
+});
+
 router.post("/premium", async (req, res) => {
   try {
     const { iNumber, due, clientName, phone,cEmail } = req.body;
